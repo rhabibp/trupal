@@ -8,6 +8,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.jetbrains.exposed.dao.id.EntityID
+import java.math.BigDecimal
 
 // Repository Interfaces
 interface CategoryRepository {
@@ -362,42 +363,60 @@ class StatsRepositoryImpl : StatsRepository {
 }
 
 // Extension functions to convert entities to DTOs
-fun Category.toDto() = CategoryDto(
-    id = id.value,
-    name = name,
-    description = description,
-    createdAt = createdAt.toInstant(TimeZone.UTC)
-)
+fun Category.toDto(): CategoryDto {
+    return CategoryDto(
+        id = this.id.value,
+        name = this.name,
+        description = this.description,
+        createdAt = this.createdAt.toInstant(TimeZone.UTC)
+    )
+}
+fun Part.toDto(): PartDto {
+    return PartDto(
+        id = this.id.value,
+        name = this.name,
+        description = this.description,
+        partNumber = this.partNumber,
+        categoryId = this.categoryId.value,
+        categoryName = try {
+            // Safely access category name within transaction
+            this.category.name
+        } catch (e: Exception) {
+            null
+        },
+        unitPrice = this.unitPrice.toDouble(),
+        currentStock = this.currentStock,
+        minimumStock = this.minimumStock,
+        maxStock = this.maxStock,
+        location = this.location,
+        supplier = this.supplier,
+        createdAt = this.createdAt.toInstant(TimeZone.UTC),
+        updatedAt = this.updatedAt.toInstant(TimeZone.UTC)
+    )
+}
 
-fun Part.toDto() = PartDto(
-    id = id.value,
-    name = name,
-    description = description,
-    partNumber = partNumber,
-    categoryId = categoryId.value,
-    categoryName = category.name,
-    unitPrice = unitPrice.toDouble(),
-    currentStock = currentStock,
-    minimumStock = minimumStock,
-    maxStock = maxStock,
-    location = location,
-    supplier = supplier,
-    createdAt = createdAt.toInstant(TimeZone.UTC),
-    updatedAt = updatedAt.toInstant(TimeZone.UTC)
-)
+fun TransactionTable.toDto(): TransactionDto {
+    return TransactionDto(
+        id = this.id.value,
+        partId = this.partId.value,
+        partName = try {
+            // Safely access part name within transaction
+            this.part.name
+        } catch (e: Exception) {
+            null
+        },
+        type = this.type,
+        quantity = this.quantity,
+        unitPrice = this.unitPrice?.toDouble(),
+        totalAmount = this.totalAmount?.toDouble(),
+        recipientName = this.recipientName,
+        reason = this.reason,
+        isPaid = this.isPaid,
+        amountPaid = this.amountPaid.toDouble(),
+        transactionDate = this.transactionDate.toInstant(TimeZone.UTC),
+        notes = this.notes
+    )
+}
 
-fun TransactionTable.toDto() = TransactionDto(
-    id = id.value,
-    partId = partId.value,
-    partName = part.name,
-    type = type,
-    quantity = quantity,
-    unitPrice = unitPrice?.toDouble(),
-    totalAmount = totalAmount?.toDouble(),
-    recipientName = recipientName,
-    reason = reason,
-    isPaid = isPaid,
-    amountPaid = amountPaid.toDouble(),
-    transactionDate = transactionDate.toInstant(TimeZone.UTC),
-    notes = notes
-)
+// Helper function to safely convert BigDecimal to Double
+private fun BigDecimal.toDouble(): Double = this.toDouble()

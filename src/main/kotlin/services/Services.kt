@@ -1,5 +1,6 @@
 package com.newmotion.services
 
+import com.newmotion.database.dbQuery
 import com.newmotion.models_dtos.*
 import com.newmotion.repository.*
 
@@ -37,49 +38,24 @@ interface StatsService {
     suspend fun getCategoryStats(): List<CategoryStatsDto>
 }
 
-// Service Implementations
-class CategoryServiceImpl(
-    private val categoryRepository: CategoryRepository
-) : CategoryService {
-
-    override suspend fun getAllCategories(): List<CategoryDto> {
-        return categoryRepository.findAll().map { it.toDto() }
-    }
-
-    override suspend fun getCategoryById(id: Long): CategoryDto? {
-        return categoryRepository.findById(id)?.toDto()
-    }
-
-    override suspend fun createCategory(categoryDto: CategoryDto): CategoryDto {
-        return categoryRepository.create(categoryDto).toDto()
-    }
-
-    override suspend fun updateCategory(id: Long, categoryDto: CategoryDto): CategoryDto? {
-        return categoryRepository.update(id, categoryDto)?.toDto()
-    }
-
-    override suspend fun deleteCategory(id: Long): Boolean {
-        return categoryRepository.delete(id)
-    }
-}
 
 class PartServiceImpl(
     private val partRepository: PartRepository
 ) : PartService {
 
-    override suspend fun getAllParts(): List<PartDto> {
-        return partRepository.findAll().map { it.toDto() }
+    override suspend fun getAllParts(): List<PartDto> = dbQuery {
+        partRepository.findAll().map { it.toDto() }
     }
 
-    override suspend fun getPartById(id: Long): PartDto? {
-        return partRepository.findById(id)?.toDto()
+    override suspend fun getPartById(id: Long): PartDto? = dbQuery {
+        partRepository.findById(id)?.toDto()
     }
 
-    override suspend fun searchParts(request: SearchPartsRequest): PaginatedResponse<PartDto> {
+    override suspend fun searchParts(request: SearchPartsRequest): PaginatedResponse<PartDto> = dbQuery {
         val (parts, total) = partRepository.search(request)
         val totalPages = (total + request.limit - 1) / request.limit
 
-        return PaginatedResponse(
+        PaginatedResponse(
             data = parts.map { it.toDto() },
             page = request.page,
             limit = request.limit,
@@ -88,42 +64,40 @@ class PartServiceImpl(
         )
     }
 
-    override suspend fun createPart(request: AddPartRequest): PartDto {
-        // Validate part number uniqueness would be handled by database constraint
-        return partRepository.create(request).toDto()
+    override suspend fun createPart(request: AddPartRequest): PartDto = dbQuery {
+        partRepository.create(request).toDto()
     }
 
-    override suspend fun updatePart(id: Long, request: UpdatePartRequest): PartDto? {
-        return partRepository.update(id, request)?.toDto()
+    override suspend fun updatePart(id: Long, request: UpdatePartRequest): PartDto? = dbQuery {
+        partRepository.update(id, request)?.toDto()
     }
 
     override suspend fun deletePart(id: Long): Boolean {
         return partRepository.delete(id)
     }
 
-    override suspend fun getLowStockParts(): List<PartDto> {
-        return partRepository.findLowStockParts().map { it.toDto() }
+    override suspend fun getLowStockParts(): List<PartDto> = dbQuery {
+        partRepository.findLowStockParts().map { it.toDto() }
     }
 }
-
 class TransactionServiceImpl(
     private val transactionRepository: TransactionRepository,
     private val partRepository: PartRepository
 ) : TransactionService {
 
-    override suspend fun getAllTransactions(): List<TransactionDto> {
-        return transactionRepository.findAll().map { it.toDto() }
+    override suspend fun getAllTransactions(): List<TransactionDto> = dbQuery {
+        transactionRepository.findAll().map { it.toDto() }
     }
 
-    override suspend fun getTransactionById(id: Long): TransactionDto? {
-        return transactionRepository.findById(id)?.toDto()
+    override suspend fun getTransactionById(id: Long): TransactionDto? = dbQuery {
+        transactionRepository.findById(id)?.toDto()
     }
 
-    override suspend fun getTransactionsByPartId(partId: Long): List<TransactionDto> {
-        return transactionRepository.findByPartId(partId).map { it.toDto() }
+    override suspend fun getTransactionsByPartId(partId: Long): List<TransactionDto> = dbQuery {
+        transactionRepository.findByPartId(partId).map { it.toDto() }
     }
 
-    override suspend fun createTransaction(request: CreateTransactionRequest): TransactionDto {
+    override suspend fun createTransaction(request: CreateTransactionRequest): TransactionDto = dbQuery {
         // Validate part exists
         partRepository.findById(request.partId)
             ?: throw IllegalArgumentException("Part with id ${request.partId} not found")
@@ -136,16 +110,14 @@ class TransactionServiceImpl(
             }
         }
 
-        return transactionRepository.create(request).toDto()
+        transactionRepository.create(request).toDto()
     }
 
-    override suspend fun updatePayment(id: Long, request: PaymentUpdateRequest): TransactionDto? {
-        return transactionRepository.updatePayment(id, request)?.toDto()
+    override suspend fun updatePayment(id: Long, request: PaymentUpdateRequest): TransactionDto? = dbQuery {
+        transactionRepository.updatePayment(id, request)?.toDto()
     }
 
     override suspend fun deleteTransaction(id: Long): Boolean {
-        // Note: In real applications, you might want to reverse the stock changes
-        // when deleting a transaction, but that requires more complex logic
         return transactionRepository.delete(id)
     }
 
@@ -154,15 +126,40 @@ class TransactionServiceImpl(
     }
 }
 
+class CategoryServiceImpl(
+    private val categoryRepository: CategoryRepository
+) : CategoryService {
+
+    override suspend fun getAllCategories(): List<CategoryDto> = dbQuery {
+        categoryRepository.findAll().map { it.toDto() }
+    }
+
+    override suspend fun getCategoryById(id: Long): CategoryDto? = dbQuery {
+        categoryRepository.findById(id)?.toDto()
+    }
+
+    override suspend fun createCategory(categoryDto: CategoryDto): CategoryDto = dbQuery {
+        categoryRepository.create(categoryDto).toDto()
+    }
+
+    override suspend fun updateCategory(id: Long, categoryDto: CategoryDto): CategoryDto? = dbQuery {
+        categoryRepository.update(id, categoryDto)?.toDto()
+    }
+
+    override suspend fun deleteCategory(id: Long): Boolean {
+        return categoryRepository.delete(id)
+    }
+}
+
 class StatsServiceImpl(
     private val statsRepository: StatsRepository
 ) : StatsService {
 
-    override suspend fun getInventoryStats(): InventoryStatsDto {
-        return statsRepository.getInventoryStats()
+    override suspend fun getInventoryStats(): InventoryStatsDto = dbQuery {
+        statsRepository.getInventoryStats()
     }
 
-    override suspend fun getCategoryStats(): List<CategoryStatsDto> {
-        return statsRepository.getCategoryStats()
+    override suspend fun getCategoryStats(): List<CategoryStatsDto> = dbQuery {
+        statsRepository.getCategoryStats()
     }
 }

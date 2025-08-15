@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.*
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseFactory {
@@ -66,7 +67,16 @@ object DatabaseFactory {
     }
 }
 
-// Simplified transaction function that doesn't use suspend
-fun <T> dbQuery(block: () -> T): T {
-    return transaction { block() }
+// Suspend transaction function for coroutines
+suspend fun <T> dbQuery(block: suspend () -> T): T {
+    return newSuspendedTransaction(db = DatabaseFactory.getDatabase()) {
+        block()
+    }
+}
+
+// Non-suspend transaction function for initialization
+fun <T> dbQueryBlocking(block: () -> T): T {
+    return transaction(DatabaseFactory.getDatabase()) {
+        block()
+    }
 }

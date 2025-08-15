@@ -15,9 +15,12 @@ application {
 repositories {
     mavenCentral()
 }
-kotlin {
-    jvmToolchain(24)
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
+
 dependencies {
     // Ktor Server
     implementation(libs.ktor.server.core)
